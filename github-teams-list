@@ -3,13 +3,7 @@
 // vim: syntax=groovy
 
 @Grab(group='org.codehaus.groovy.modules.http-builder', module='http-builder', version='0.7')
-import groovyx.net.http.HTTPBuilder
-import groovyx.net.http.AuthConfig
-
-import static groovyx.net.http.ContentType.JSON
-import static groovyx.net.http.ContentType.XML
-import static groovyx.net.http.Method.GET
-import static groovyx.net.http.Method.POST
+import groovyx.net.http.RESTClient
 
 def home = System.getProperty('user.home')
 assert home != null
@@ -17,18 +11,41 @@ def token = new File("$home/.github-token").text.trim()
 def agent = new File("$home/.github-user").text.trim()
 def org = System.env['GITHUB_ORG'] ?: System.getProperty('GITHUB_ORG')
 assert org != null : "GITHUB_ORG environment variable must be set"
-
 def url = 'https://api.github.com'
-def http = new HTTPBuilder(url)
+def auth = [ Authorization: "token $token", 'User-Agent': agent ]
+def client = new RESTClient(url)
+client.defaultRequestHeaders.putAll(auth)
 
-http.request(GET, JSON) {
-  uri.path = "/orgs/$org/teams"
-  uri.query = [:]
-  headers.Authorization = "token $token"
-  headers.'User-Agent' = agent
-  response.success = { resp, json ->
-    json.each {
-      println "${it.id}: ${it.slug}"
-    }
+def parseLinks = { resp ->
+  def links = resp.getFirstHeader('Link').toString()
+  def elements = links.split(",")*.trim()
+  def map = [:]
+  for (e in elements) {
+    def vk = e.split(";")*.trim()
+    def v = (vk[0] =~ /<(.*)>/)[0][1]
+    def k = (vk[1] =~ /"(.*)"/)[0][1]
+    map[k] = v
   }
+  return map
+}
+
+def getPathAndQuery = { link ->
+  def s = link.split('\\?')
+  def p = s[0] - url
+  def m = (s[1] =~ /(.*)=(.*)/)[0]
+  return [path: p, query: ["${m[1]}": m[2]]]
+}
+
+def response = client.get(path: "/orgs/$org/teams")
+def teams = response.data
+def links = parseLinks(response)
+
+while (links.next != null) {
+  response = client.get(getPathAndQuery(links.next))
+  teams.addAll(response.data)
+  links = parseLinks(response)
+}
+
+teams.each {
+  println "${it.id}\t${it.slug}"
 }
