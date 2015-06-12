@@ -1,0 +1,22 @@
+#!/usr/bin/env groovy
+
+// vim: syntax=groovy
+
+@Grab(group='org.codehaus.groovy.modules.http-builder', module='http-builder', version='0.7')
+import groovyx.net.http.RESTClient
+
+def home = System.getProperty('user.home')
+assert home != null
+def token = new File("$home/.github-token").text.trim()
+def agent = new File("$home/.github-user").text.trim()
+def url = 'https://api.github.com'
+def auth = [ Authorization: "token $token", 'User-Agent': agent ]
+def client = new RESTClient(url)
+client.defaultRequestHeaders.putAll(auth)
+
+def id = args[0]
+def response = client.get(path: "/teams/$id/members")
+
+response.data.each {
+  println it.login
+}
