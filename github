@@ -45,6 +45,19 @@ class GitHub {
     return [path: p, query: ["${m[1]}": m[2]]]
   }
 
+  public def repos() {
+    def response = client.get(path: "/orgs/$org/repos")
+    def page = response.data
+    def links = parseLinks(response)
+    while (links.next) {
+      response = client.get(getPathAndQuery(links.next))
+      page.addAll(response.data)
+      links = parseLinks(response)
+    }
+    page.each {
+      println it.full_name
+    }
+  }
   public def teamsList() {
     def response = client.get(path: "/orgs/$org/teams")
     def teams = response.data
@@ -58,9 +71,9 @@ class GitHub {
       println "${it.id}\t${it.slug}"
     }
   }
+
   public def teamMembers(id) {
     def response = client.get(path: "/teams/$id/members")
-
     response.data.each {
       println it.login
     }
@@ -89,6 +102,9 @@ if (args.length == 0) {
 }
 
 switch (args[0]) {
+case "repos":
+  gh.repos()
+  break
 case "repo-forks":
   gh.repoListForks(args[1])
   break
@@ -107,6 +123,7 @@ def help() {
   teams: list teams in org
   team-members <id>
 
+  repos
   repo-forks <repo>
 '''
 }
