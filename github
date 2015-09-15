@@ -58,7 +58,7 @@ class GitHub {
       links = parseLinks(response)
     }
     page.each {
-      println it.full_name
+      println "${it.full_name}\t${it.ssh_url}"
     }
   }
   public def teamsList() {
@@ -92,7 +92,7 @@ class GitHub {
       links = parseLinks(response)
     }
     forks.each {
-      println it.full_name
+      println "${it.full_name}\t${it.ssh_url}"
     }
   }
 }
