@@ -26,7 +26,10 @@ class GitHub {
   }
 
   def parseLinks = { resp ->
-    def links = resp.getFirstHeader('Link').toString()
+    def links = resp.getFirstHeader('Link')?.toString()
+    if (!links) {
+      return null
+    }
     def elements = links.split(",")*.trim()
     def map = [:]
     for (e in elements) {
@@ -49,7 +52,7 @@ class GitHub {
     def response = client.get(path: "/orgs/$org/repos")
     def page = response.data
     def links = parseLinks(response)
-    while (links.next) {
+    while (links?.next) {
       response = client.get(getPathAndQuery(links.next))
       page.addAll(response.data)
       links = parseLinks(response)
@@ -62,7 +65,7 @@ class GitHub {
     def response = client.get(path: "/orgs/$org/teams")
     def teams = response.data
     def links = parseLinks(response)
-    while (links.next != null) {
+    while (links?.next) {
       response = client.get(getPathAndQuery(links.next))
       teams.addAll(response.data)
       links = parseLinks(response)
@@ -83,7 +86,7 @@ class GitHub {
     def response = client.get(path: "/repos/$org/$repo/forks")
     def forks = response.data
     def links = parseLinks(response)
-    while (links.next) {
+    while (links?.next) {
       response = client.get(getPathAndQuery(links.next))
       forks.addAll(response.data)
       links = parseLinks(response)
