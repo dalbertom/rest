@@ -95,6 +95,32 @@ class GitHub {
       println "${it.full_name}\t${it.ssh_url}"
     }
   }
+
+  public def getCommitStatuses(repo, ref) {
+    def response = client.get(path: "/repos/$org/$repo/commits/$ref/statuses")
+    def statuses = response.data
+    statuses.each {
+      println "State: ${it.state}"
+      println "Context: ${it.context}"
+      println "Description: ${it.description}"
+      println "URL: ${it.target_url}"
+      println ""
+    }
+  }
+
+  public def postCommitStatus(repo, ref, state, context, description, url) {
+    def payload = [
+      state: state,
+      context: context,
+      description: description,
+      target_url: url
+    ]
+    client.post(
+      path: "/repos/$org/$repo/statuses/$ref",
+      contentType: 'application/json',
+      body: payload
+    )
+  }
 }
 
 def gh = new GitHub(org, agent, token)
@@ -117,6 +143,12 @@ case "teams":
 case "team-members":
   gh.teamMembers(args[1])
   break
+case "statuses":
+  gh.getCommitStatuses(args[1], args[2])
+  break
+case "status":
+  gh.postCommitStatus(args[1], args[2], args[3], args[4], args[5], args[6])
+  break
 default:
   help()
 }
@@ -128,6 +160,9 @@ def help() {
 
   repos
   repo-forks <repo>
+
+  statuses <repo> <ref>
+  status <repo> <ref> <state> <context> <description> <url>
 '''
 }
 
