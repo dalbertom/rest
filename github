@@ -121,6 +121,11 @@ class GitHub {
       body: payload
     )
   }
+
+  public revParse(repo, branch) {
+    def response = client.get(path: "/repos/$org/$repo/branches/$branch")
+    println response.data.commit.sha
+  }
 }
 
 def gh = new GitHub(org, agent, token)
@@ -149,6 +154,9 @@ case "statuses":
 case "status":
   gh.postCommitStatus(args[1], args[2], args[3], args[4], args[5], args[6])
   break
+case "rev-parse":
+  gh.revParse(args[1], args[2])
+  break
 default:
   help()
 }
@@ -163,6 +171,8 @@ def help() {
 
   statuses <repo> <ref>
   status <repo> <ref> <state> <context> <description> <url>
+
+  rev-parse <repo> <branch>
 '''
 }
 
