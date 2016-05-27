@@ -82,6 +82,20 @@ class GitHub {
     }
   }
 
+  public def orgMembers() {
+    def response = client.get(path: "/orgs/$org/members")
+    def members = response.data
+    def links = parseLinks(response)
+    while (links?.next) {
+      response = client.get(getPathAndQuery(links.next))
+      members.addAll(response.data)
+      links = parseLinks(response)
+    }
+    members.each {
+      println "${it.login}"
+    }
+  }
+
   public def repoListForks(repo) {
     def response = client.get(path: "/repos/$org/$repo/forks")
     def forks = response.data
@@ -142,6 +156,9 @@ case "repos":
 case "repo-forks":
   gh.repoListForks(args[1])
   break
+case "org-members":
+  gh.orgMembers()
+  break
 case "teams":
   gh.teamsList()
   break
@@ -165,6 +182,8 @@ def help() {
   println '''
   teams: list teams in org
   team-members <id>
+
+  org-members
 
   repos
   repo-forks <repo>
